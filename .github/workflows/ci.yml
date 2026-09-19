@@ -29,8 +29,14 @@ jobs:
 
       - name: Smoke test - HTTP response and content
         run: |
-          body="$(curl -sf http://localhost:8080/)"
-          echo "$body" | grep -qi "webmsx" || { echo "Response did not contain expected WebMSX marker"; exit 1; }
+          # Standalone build is a multi-MB self-contained HTML file; only the
+          # first bytes are needed to check for the expected marker, so use a
+          # byte-range request instead of downloading (and grepping) the whole body.
+          body="$(curl -sf -r 0-4095 http://localhost:8080/)"
+          if ! grep -qi "webmsx" <<< "$body"; then
+            echo "Response did not contain expected WebMSX marker"
+            exit 1
+          fi
           echo "Smoke test passed"
 
       - name: Show logs on failure
